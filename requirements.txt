@@ -1,0 +1,5 @@
+ollama
+httpx
+pydantic
+python-dotenv
+playwright
