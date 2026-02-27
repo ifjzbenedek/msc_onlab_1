@@ -13,6 +13,11 @@ query submissionDetails($submissionId: Int!) {
         memoryPercentile
         totalCorrect
         totalTestcases
+        compileError
+        runtimeError
+        lastTestcase
+        codeOutput
+        expectedOutput
     }
 }
 """
@@ -100,6 +105,11 @@ class LeetCodeSubmitter:
                 "total_testcases": details["totalTestcases"],
                 "runtime_percentile": details["runtimePercentile"],
                 "memory_percentile": details["memoryPercentile"],
+                "compile_error": details["compileError"],
+                "runtime_error": details["runtimeError"],
+                "last_testcase": details["lastTestcase"],
+                "code_output": details["codeOutput"],
+                "expected_output": details["expectedOutput"],
             }
 
         raise TimeoutError(f"Judge did not finish within {max_wait}s for submission {submission_id}")

@@ -60,6 +60,11 @@ def submit_solution(slug: str, question_id: str, code: str, submitter: LeetCodeS
         total_testcases=raw["total_testcases"],
         runtime_percentile=raw["runtime_percentile"],
         memory_percentile=raw["memory_percentile"],
+        compile_error=raw["compile_error"],
+        runtime_error=raw["runtime_error"],
+        last_testcase=raw["last_testcase"],
+        code_output=raw["code_output"],
+        expected_output=raw["expected_output"],
     )
 
 

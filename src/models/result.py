@@ -21,6 +21,12 @@ class SubmissionResult(BaseModel):
     total_testcases: int | None = None
     runtime_percentile: float | None = None
     memory_percentile: float | None = None
+    # error feedback (useful for reviewer agent)
+    compile_error: str | None = None
+    runtime_error: str | None = None
+    last_testcase: str | None = None
+    code_output: str | None = None
+    expected_output: str | None = None
 
 
 class BenchmarkEntry(BaseModel):
