@@ -1,6 +1,5 @@
 import logging
 import time
-
 import httpx
 
 log = logging.getLogger(__name__)

@@ -5,6 +5,7 @@ sys.path.insert(0, ".")
 
 import config
 from src.clients import OllamaClient, LeetCodeClient
+from src.prompts import WRITER_SYSTEM, writer_prompt
 
 
 def main() -> None:
@@ -21,26 +22,14 @@ def main() -> None:
     print(f"Model:   {args.model}")
     print("─" * 50)
 
-    # Build the prompt
-    prompt = f"""Solve this LeetCode problem in Python. Return ONLY the code, no explanation.
-
-{problem.title}
-
-{problem.description}
-
-Starting code:
-{problem.code_stub}
-"""
-
-    # Send to the model
     ollama = OllamaClient(host=config.OLLAMA_HOST)
 
     print("\nWaiting for model response...")
     start = time.time()
     response = ollama.generate(
         model=args.model,
-        prompt=prompt,
-        system="You are an expert Python programmer. Return only code in a ```python``` block.",
+        prompt=writer_prompt(problem),
+        system=WRITER_SYSTEM,
         temperature=0.2,
     )
     elapsed = time.time() - start

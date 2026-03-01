@@ -1,9 +1,5 @@
-"""Client for the LeetCode GraphQL API."""
-
 import logging
-
 import httpx
-
 from src.models.problem import Problem
 
 log = logging.getLogger(__name__)
@@ -22,7 +18,7 @@ query getQuestionDetail($titleSlug: String!) {
     }
 }
 """
-
+ 
 # Fetch the full problem list (slug, title, difficulty)
 _PROBLEMSET_QUERY = """
 query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {

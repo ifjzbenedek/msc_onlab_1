@@ -24,10 +24,9 @@ def pick_problems(all_problems: list[dict], difficulty: str, n: int) -> list[dic
 
 
 def generate_solution(slug: str, model: str, leetcode: LeetCodeClient, ollama: OllamaClient) -> tuple[SolveResult, str | None]:
-    """returns (result, question_id) — question_id needed for submission"""
     problem = leetcode.fetch_problem(slug)
-
     start = time.time()
+
     try:
         raw = ollama.generate(model=model, prompt=writer_prompt(problem), system=WRITER_SYSTEM)
         elapsed = time.time() - start
@@ -150,7 +149,7 @@ def main() -> None:
 
     total_time = time.time() - t0
 
-    # Save into json (later I can turn it into an md table or something)
+    # Save into json (later I can turn it into a md table or something)
     RESULTS_DIR.mkdir(exist_ok=True)
     safe_model = args.model.replace(":", "_").replace("/", "_")
     out_path = RESULTS_DIR / f"benchmark_{safe_model}_{time.strftime('%Y%m%d_%H%M%S')}.json"
