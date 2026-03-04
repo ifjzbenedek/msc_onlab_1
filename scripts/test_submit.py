@@ -37,10 +37,10 @@ def main() -> None:
         code=TWO_SUM_SOLUTION,
     )
 
-    print(f"\nStatus:     {result['status']}")
-    print(f"Tests:      {result['total_correct']}/{result['total_testcases']}")
-    print(f"Runtime:    top {result['runtime_percentile']:.0f}%")
-    print(f"Memory:     top {result['memory_percentile']:.0f}%")
+    print(f"\nStatus:     {result.status}")
+    print(f"Tests:      {result.total_correct}/{result.total_testcases}")
+    print(f"Runtime:    top {result.runtime_percentile:.0f}%")
+    print(f"Memory:     top {result.memory_percentile:.0f}%")
 
 
 if __name__ == "__main__":

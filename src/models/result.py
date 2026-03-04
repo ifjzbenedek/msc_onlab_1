@@ -32,3 +32,9 @@ class SubmissionResult(BaseModel):
 class BenchmarkEntry(BaseModel):
     solve: SolveResult
     submission: SubmissionResult | None = None
+
+class ReviewerFeedback(BaseModel):
+    accepted: bool
+    feedback: str
+    model: str
+    message_number: int

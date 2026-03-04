@@ -49,22 +49,7 @@ def generate_solution(slug: str, model: str, leetcode: LeetCodeClient, ollama: O
 
 
 def submit_solution(slug: str, question_id: str, code: str, submitter: LeetCodeSubmitter) -> SubmissionResult:
-    raw = submitter.submit(slug=slug, question_id=question_id, code=code)
-    return SubmissionResult(
-        slug=slug,
-        submission_id=raw["submission_id"],
-        accepted=raw["status_code"] == 10,
-        status=raw["status"],
-        total_correct=raw["total_correct"],
-        total_testcases=raw["total_testcases"],
-        runtime_percentile=raw["runtime_percentile"],
-        memory_percentile=raw["memory_percentile"],
-        compile_error=raw["compile_error"],
-        runtime_error=raw["runtime_error"],
-        last_testcase=raw["last_testcase"],
-        code_output=raw["code_output"],
-        expected_output=raw["expected_output"],
-    )
+    return submitter.submit(slug=slug, question_id=question_id, code=code)
 
 
 def main() -> None:

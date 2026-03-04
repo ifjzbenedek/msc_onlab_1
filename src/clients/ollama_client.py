@@ -1,11 +1,7 @@
-"""Client for the remote Ollama API (accessed via SSH tunnel)."""
-
 import logging
-
 from ollama import Client
 
 log = logging.getLogger(__name__)
-
 
 class OllamaClient:
 
