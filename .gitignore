@@ -3,5 +3,7 @@ __pycache__/
 .venv/
 .env
 .claude/
+CLAUDE.md
+docs/
 data/
 results/
