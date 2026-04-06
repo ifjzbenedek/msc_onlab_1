@@ -4,7 +4,7 @@ from src.agents.pipeline import PipelineResult
 from src.clients.ollama_client import OllamaClient
 from src.clients.leetcode_submitter import LeetCodeSubmitter
 from src.models.problem import Problem
-from src.prompts import WRITER_SYSTEM, writer_prompt, writer_error_prompt
+from src.prompts import writer_system, writer_prompt, writer_error_prompt
 from src.utils.parsers import extract_code
 
 log = logging.getLogger(__name__)
@@ -20,8 +20,9 @@ class BaselineFix:
         self.max_fixes = max_fixes
 
     def run(self, problem: Problem) -> PipelineResult:
+        sys_prompt = writer_system(problem.lang)
         raw = self.ollama.generate(
-            model=self.model, prompt=writer_prompt(problem), system=WRITER_SYSTEM,
+            model=self.model, prompt=writer_prompt(problem), system=sys_prompt,
         )
         code = extract_code(raw)
         if not code:
@@ -30,7 +31,7 @@ class BaselineFix:
         last_sub = None
         for _ in range(self.max_fixes):
             try:
-                last_sub = self.submitter.submit(problem.slug, problem.id, code)
+                last_sub = self.submitter.submit(problem.slug, problem.id, code, lang=problem.lang)
             except Exception as e:
                 log.error("Submit failed: %s", e)
                 return PipelineResult(code=code, submission=last_sub)
@@ -44,7 +45,7 @@ class BaselineFix:
             raw = self.ollama.generate(
                 model=self.model,
                 prompt=writer_error_prompt(problem, code, last_sub.status, error_msg),
-                system=WRITER_SYSTEM,
+                system=sys_prompt,
             )
             new_code = extract_code(raw)
             if not new_code:

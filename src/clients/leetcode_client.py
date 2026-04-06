@@ -46,14 +46,14 @@ class LeetCodeClient:
     def __init__(self, graphql_url: str) -> None:
         self._url = graphql_url
 
-    def fetch_problem(self, slug: str) -> Problem:
+    def fetch_problem(self, slug: str, lang: str = "python3") -> Problem:
 
         raw = self._query(_PROBLEM_QUERY, {"titleSlug": slug})["question"]
 
-        python3_stub = ""
+        code_stub = ""
         for snippet in raw["codeSnippets"]:
-            if snippet["langSlug"] == "python3":
-                python3_stub = snippet["code"]
+            if snippet["langSlug"] == lang:
+                code_stub = snippet["code"]
                 break
 
         problem = Problem(
@@ -62,10 +62,17 @@ class LeetCodeClient:
             slug=raw["titleSlug"],
             difficulty=raw["difficulty"],
             description=raw["content"],
-            code_stub=python3_stub,
+            code_stub=code_stub,
+            lang=lang,
         )
         log.info("Fetched problem #%s: %s (%s)", problem.id, problem.title, problem.difficulty)
         return problem
+
+    def fetch_supported_langs(self, slug: str = "two-sum") -> list[str]:
+        raw = self._query(_PROBLEM_QUERY, {"titleSlug": slug})["question"]
+        langs = [snippet["langSlug"] for snippet in raw["codeSnippets"]]
+        log.info("Supported languages: %s", ", ".join(langs))
+        return langs
 
     def fetch_problem_list(self, category: str = "algorithms") -> list[dict]:
         page_size = 100

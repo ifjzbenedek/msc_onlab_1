@@ -1,6 +1,6 @@
 import re
 
-_CODE_BLOCK = re.compile(r"```(?:python)?\s*\n(.+?)```", re.DOTALL)
+_CODE_BLOCK = re.compile(r"```(?:\w+)?\s*\n(.+?)```", re.DOTALL)
 
 
 def extract_code(response: str) -> str | None:

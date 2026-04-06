@@ -12,6 +12,7 @@ class PipelineResult:
     code: Optional[str]
     reviews: list[ReviewerFeedback] = field(default_factory=list)
     submission: Optional[SubmissionResult] = None
+    voting_stats: Optional[dict] = None
 
 
 class AgentPipeline(Protocol):

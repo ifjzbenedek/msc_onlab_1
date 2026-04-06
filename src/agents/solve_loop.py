@@ -7,7 +7,7 @@ from src.models.config import SolveConfig
 from src.models.problem import Problem
 from src.models.result import ReviewerFeedback, SubmissionResult
 from src.prompts import (
-    WRITER_SYSTEM, writer_prompt,
+    writer_system, writer_prompt,
     REVIEWER_SYSTEM, reviewer_prompt,
     writer_revision_prompt,
     writer_error_prompt,
@@ -24,11 +24,13 @@ def solve_with_review(
     submitter: Optional[LeetCodeSubmitter] = None,
 ) -> tuple[Optional[str], list[ReviewerFeedback], Optional[SubmissionResult]]:
 
+    sys_prompt = writer_system(problem.lang)
+
     # First attempt
     raw = ollama.generate(
         model=config.writer_model,
         prompt=writer_prompt(problem),
-        system=WRITER_SYSTEM,
+        system=sys_prompt,
     )
     code = extract_code(raw)
 
@@ -60,7 +62,7 @@ def solve_with_review(
         if accepted:
             if submitter:
                 try:
-                    last_sub = submitter.submit(problem.slug, problem.id, code)
+                    last_sub = submitter.submit(problem.slug, problem.id, code, lang=problem.lang)
                 except Exception as e:
                     log.error("Submit failed: %s", e)
                     break
@@ -74,7 +76,7 @@ def solve_with_review(
                     raw = ollama.generate(
                         model=config.writer_model,
                         prompt=writer_error_prompt(problem, code, error_type, error_msg),
-                        system=WRITER_SYSTEM,
+                        system=sys_prompt,
                     )
                     new_code = extract_code(raw)
                     if new_code:
@@ -89,7 +91,7 @@ def solve_with_review(
         raw = ollama.generate(
             model=config.writer_model,
             prompt=writer_revision_prompt(problem, code, feedback),
-            system=WRITER_SYSTEM,
+            system=sys_prompt,
         )
         new_code = extract_code(raw)
 

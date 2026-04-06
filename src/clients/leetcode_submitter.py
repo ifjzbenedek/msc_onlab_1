@@ -53,17 +53,44 @@ class LeetCodeSubmitter:
         self._refresh_csrf()
 
     def _refresh_csrf(self) -> None:
-        """Fetch a fresh CSRF token and update headers + cookies."""
+        """Fetch a fresh CSRF token from LeetCode."""
+        # If we already have a csrftoken from a previous response, just reuse it
+        if "csrftoken" in self._http.cookies:
+            self._http.headers["x-csrftoken"] = self._http.cookies["csrftoken"]
+            return
+        self._force_refresh_csrf()
+
+    def _force_refresh_csrf(self) -> None:
+        """Force a fresh CSRF token by clearing the existing one."""
         self._http.cookies.delete("csrftoken")
-        self._http.get(self._graphql_url)
+
+        # POST graphql works reliably even from server IPs (GET is often blocked)
+        try:
+            self._http.post(
+                self._graphql_url,
+                json={"query": "{ __typename }"},
+            )
+        except httpx.HTTPError:
+            pass
+
+        # Fallback: try GET endpoints
         if "csrftoken" not in self._http.cookies:
-            raise RuntimeError("could not obtain csrftoken from leetcode")
-        csrf = self._http.cookies["csrftoken"]
-        self._http.headers["x-csrftoken"] = csrf
+            for url in ("https://leetcode.com/", self._graphql_url):
+                try:
+                    self._http.get(url)
+                except httpx.HTTPError:
+                    pass
+                if "csrftoken" in self._http.cookies:
+                    break
+
+        if "csrftoken" not in self._http.cookies:
+            raise RuntimeError("could not obtain csrftoken from leetcode — session may be expired")
+        self._http.headers["x-csrftoken"] = self._http.cookies["csrftoken"]
 
     def submit(self, slug: str, question_id: str, code: str, lang: str = "python3",
                max_retries: int = 3) -> SubmissionResult:
         log.info("Submitting %s (%s)", slug, lang)
+        self._refresh_csrf()
 
         for attempt in range(max_retries):
             resp = self._http.post(
@@ -75,10 +102,10 @@ class LeetCodeSubmitter:
                 },
             )
             if resp.status_code == 403 and attempt < max_retries - 1:
-                wait = 15 * (attempt + 1)
+                wait = 30 * (2 ** attempt)  # 30s, 60s, 120s
                 log.warning("Got 403, retrying in %ds (attempt %d/%d)", wait, attempt + 1, max_retries)
                 time.sleep(wait)
-                self._refresh_csrf()
+                self._force_refresh_csrf()
                 continue
             resp.raise_for_status()
             break

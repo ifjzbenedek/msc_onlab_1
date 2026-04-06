@@ -26,6 +26,7 @@ class OllamaClient:
             model=model,
             messages=messages,
             options={"temperature": temperature},
+            keep_alive="30m",
         )
         text = response.message.content
         log.info("Response: %d chars", len(text))

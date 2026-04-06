@@ -10,3 +10,4 @@ class Problem(BaseModel):
     difficulty: str
     description: str
     code_stub: str
+    lang: str = "python3"

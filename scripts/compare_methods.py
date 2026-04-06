@@ -1,5 +1,3 @@
-"""Compare baseline (single-shot) vs reviewer-loop on the same random problems."""
-
 import argparse
 import json
 import random
@@ -14,7 +12,7 @@ import logging
 import httpx
 import config
 from src.clients import OllamaClient, LeetCodeClient, LeetCodeSubmitter
-from src.agents import Baseline, BaselineFix, Reviewer, ReviewerFix, AgentPipeline
+from src.agents import Baseline, BaselineFix, Reviewer, ReviewerFix, MajorityVoting, AgentPipeline
 from src.utils import ReportGenerator
 from src.models.config import SolveConfig
 from src.models.pipeline_run_result import PipelineRunResult
@@ -23,8 +21,8 @@ logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
 
 RESULTS_DIR = Path("results")
 
-WRITER_MODEL = "qwen2.5-coder:14b"
-REVIEWER_MODEL = "gemma2:9b"
+DEFAULT_WRITER_MODEL = "qwen2.5-coder:14b"
+DEFAULT_REVIEWER_MODEL = "gemma2:9b"
 
 
 def pick_problems(all_problems: list[dict], difficulty: str, n: int) -> list[dict]:
@@ -74,7 +72,17 @@ def main() -> None:
     parser.add_argument("--hard", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-iterations", type=int, default=3)
+    parser.add_argument("--writer-model", default=DEFAULT_WRITER_MODEL)
+    parser.add_argument("--reviewer-model", default=DEFAULT_REVIEWER_MODEL)
+    parser.add_argument("--lang", default="python3",
+                        help="LeetCode langSlug (e.g. python3, java, cpp)")
+    parser.add_argument("--voting-runs", type=int, default=0,
+                        help="If >0, add MajorityVoting wrapper for each pipeline with N runs")
     args = parser.parse_args()
+
+    writer_model = args.writer_model
+    reviewer_model = args.reviewer_model
+    lang = args.lang
 
     random.seed(args.seed)
 
@@ -93,8 +101,9 @@ def main() -> None:
         selected.extend(picked)
 
     print(f"\nTotal: {len(selected)} problems")
-    print(f"Writer:   {WRITER_MODEL}")
-    print(f"Reviewer: {REVIEWER_MODEL}")
+    print(f"Writer:   {writer_model}")
+    print(f"Reviewer: {reviewer_model}")
+    print(f"Language: {lang}")
     print("=" * 60)
 
     leetcode = LeetCodeClient(graphql_url=config.LEETCODE_GRAPHQL_URL)
@@ -105,37 +114,59 @@ def main() -> None:
     )
 
     cfg = SolveConfig(
-        writer_model=WRITER_MODEL,
-        reviewer_model=REVIEWER_MODEL,
+        writer_model=writer_model,
+        reviewer_model=reviewer_model,
         max_iterations=args.max_iterations,
     )
 
-    pipelines: list[AgentPipeline] = [
-        Baseline(ollama, WRITER_MODEL, submitter),
-        BaselineFix(ollama, WRITER_MODEL, submitter),
+    base_pipelines: list[AgentPipeline] = [
+        Baseline(ollama, writer_model, submitter),
+        BaselineFix(ollama, writer_model, submitter),
         Reviewer(ollama, cfg, submitter),
         ReviewerFix(ollama, cfg, submitter),
     ]
 
+    pipelines: list[AgentPipeline] = list(base_pipelines)
+    if args.voting_runs > 0:
+        for p in base_pipelines:
+            pipelines.append(MajorityVoting(p, runs=args.voting_runs))
+
     pipeline_names = [p.name for p in pipelines]
-    results = []
     t0 = time.time()
 
+    # Fetch all problems upfront
+    problems: list[tuple[dict, object]] = []
     for i, p in enumerate(selected):
-        print(f"\n[{i+1}/{len(selected)}] {p['title']} ({p['difficulty']})")
-
         try:
-            problem = leetcode.fetch_problem(p["slug"])
+            problem = leetcode.fetch_problem(p["slug"], lang=lang)
+            problems.append((p, problem))
         except Exception as e:
-            print(f"  skip (fetch failed: {e})")
-            continue
+            print(f"  skip {p['title']} (fetch failed: {e})")
 
+    # Run pipeline-by-pipeline to minimise model swaps
+    pipeline_results: dict[str, dict[str, PipelineRunResult]] = {
+        p["slug"]: {} for p, _ in problems
+    }
+
+    for pipeline in pipelines:
+        print(f"\n{'=' * 40}")
+        print(f"Pipeline: {pipeline.name} ({len(problems)} problems)")
+        print(f"{'=' * 40}")
+
+        for i, (p, problem) in enumerate(problems):
+            print(f"  [{i+1}/{len(problems)}] {p['title']} ({p['difficulty']})")
+            result = run_pipeline(pipeline, problem)
+            pipeline_results[p["slug"]][pipeline.name] = result
+            if i < len(problems) - 1:
+                time.sleep(5)
+
+    # Assemble results in the original format
+    results = []
+    for p, _ in problems:
         entry = {"slug": p["slug"], "title": p["title"], "difficulty": p["difficulty"]}
-
-        for pipeline in pipelines:
-            print(f"  [{pipeline.name}] running...")
-            entry[pipeline.name] = run_pipeline(pipeline, problem).model_dump()
-
+        for name in pipeline_names:
+            if name in pipeline_results[p["slug"]]:
+                entry[name] = pipeline_results[p["slug"]][name].model_dump()
         results.append(entry)
 
     # Save results to JSON
@@ -144,8 +175,9 @@ def main() -> None:
     out_path = RESULTS_DIR / f"compare_{time.strftime('%Y%m%d_%H%M%S')}.json"
 
     payload = {
-        "writer_model": WRITER_MODEL,
-        "reviewer_model": REVIEWER_MODEL,
+        "writer_model": writer_model,
+        "reviewer_model": reviewer_model,
+        "lang": lang,
         "seed": args.seed,
         "max_iterations": args.max_iterations,
         "total_time_seconds": round(total_time, 1),

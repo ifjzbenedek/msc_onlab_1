@@ -23,6 +23,6 @@ class Reviewer:
 
         submission = None
         if code and self.submitter:
-            submission = self.submitter.submit(problem.slug, problem.id, code)
+            submission = self.submitter.submit(problem.slug, problem.id, code, lang=problem.lang)
 
         return PipelineResult(code=code, reviews=reviews, submission=submission)
