@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -34,7 +35,19 @@ class BenchmarkEntry(BaseModel):
     submission: SubmissionResult | None = None
 
 class ReviewerFeedback(BaseModel):
+    """Deprecated, use AgentStep instead."""
     accepted: bool
     feedback: str
     model: str
     message_number: int
+
+
+class AgentStep(BaseModel):
+    role: str
+    model: str
+    round_number: int
+    action: str
+    content: str
+    index: int = 0
+    duration_seconds: Optional[float] = None
+    metadata: Optional[dict] = None

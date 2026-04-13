@@ -10,6 +10,12 @@ REVIEWER_SYSTEM = (
     "If REVISE, explain what needs to be fixed."
 )
 
+QUICK_REVIEWER_SYSTEM = (
+    "You are a fast code reviewer. Check for bugs, syntax errors, "
+    "and mistakes. Respond with ACCEPT or REVISE on the first line. "
+    "If REVISE, explain what needs to be fixed."
+)
+
 
 def reviewer_prompt(problem: Problem, code: str) -> str:
     """Standard code review prompt."""

@@ -12,7 +12,12 @@ import logging
 import httpx
 import config
 from src.clients import OllamaClient, LeetCodeClient, LeetCodeSubmitter
-from src.agents import Baseline, BaselineFix, Reviewer, ReviewerFix, MajorityVoting, AgentPipeline
+from src.agents import (
+    AgentPipeline, Baseline, BaselineFix, Reviewer, ReviewerFix,
+    MajorityVoting, SelfReflection, PeerReview, HierarchicalReview,
+    Debate, CoopetitionMerge, PlannerCoder, Orchestrator,
+    LLMRouter, RuleRouter,
+)
 from src.utils import ReportGenerator
 from src.models.config import SolveConfig
 from src.models.pipeline_run_result import PipelineRunResult
@@ -76,12 +81,18 @@ def main() -> None:
     parser.add_argument("--reviewer-model", default=DEFAULT_REVIEWER_MODEL)
     parser.add_argument("--lang", default="python3",
                         help="LeetCode langSlug (e.g. python3, java, cpp)")
+    parser.add_argument("--quick-reviewer-model", default=None,
+                        help="Small model for hierarchical quick review (defaults to reviewer)")
+    parser.add_argument("--judge-model", default=None,
+                        help="Model for debate judge / merge (defaults to reviewer)")
     parser.add_argument("--voting-runs", type=int, default=0,
                         help="If >0, add MajorityVoting wrapper for each pipeline with N runs")
     args = parser.parse_args()
 
     writer_model = args.writer_model
     reviewer_model = args.reviewer_model
+    quick_reviewer_model = args.quick_reviewer_model or reviewer_model
+    judge_model = args.judge_model or reviewer_model
     lang = args.lang
 
     random.seed(args.seed)
@@ -101,9 +112,11 @@ def main() -> None:
         selected.extend(picked)
 
     print(f"\nTotal: {len(selected)} problems")
-    print(f"Writer:   {writer_model}")
-    print(f"Reviewer: {reviewer_model}")
-    print(f"Language: {lang}")
+    print(f"Writer:          {writer_model}")
+    print(f"Reviewer:        {reviewer_model}")
+    print(f"Quick reviewer:  {quick_reviewer_model}")
+    print(f"Judge:           {judge_model}")
+    print(f"Language:        {lang}")
     print("=" * 60)
 
     leetcode = LeetCodeClient(graphql_url=config.LEETCODE_GRAPHQL_URL)
@@ -119,11 +132,26 @@ def main() -> None:
         max_iterations=args.max_iterations,
     )
 
+    orchestrator_inner = {
+        "baseline": Baseline(ollama, writer_model, submitter),
+        "baseline+fix": BaselineFix(ollama, writer_model, submitter),
+        "reviewer": Reviewer(ollama, cfg, submitter),
+        "reviewer+fix": ReviewerFix(ollama, cfg, submitter),
+    }
+
     base_pipelines: list[AgentPipeline] = [
         Baseline(ollama, writer_model, submitter),
         BaselineFix(ollama, writer_model, submitter),
         Reviewer(ollama, cfg, submitter),
         ReviewerFix(ollama, cfg, submitter),
+        SelfReflection(ollama, writer_model, submitter),
+        PeerReview(ollama, cfg, [reviewer_model] * 3, submitter),
+        HierarchicalReview(ollama, cfg, quick_reviewer_model, reviewer_model, submitter),
+        Debate(ollama, writer_model, writer_model, judge_model, submitter),
+        CoopetitionMerge(ollama, writer_model, writer_model, judge_model, submitter),
+        PlannerCoder(ollama, writer_model, writer_model, submitter),
+        Orchestrator(orchestrator_inner, LLMRouter(ollama, reviewer_model), name="orchestrator-llm"),
+        Orchestrator(orchestrator_inner, RuleRouter({"Easy": "baseline", "Medium": "baseline+fix", "Hard": "reviewer+fix"}), name="orchestrator-rule"),
     ]
 
     pipelines: list[AgentPipeline] = list(base_pipelines)
@@ -148,7 +176,7 @@ def main() -> None:
         p["slug"]: {} for p, _ in problems
     }
 
-    for pipeline in pipelines:
+    for pi, pipeline in enumerate(pipelines):
         print(f"\n{'=' * 40}")
         print(f"Pipeline: {pipeline.name} ({len(problems)} problems)")
         print(f"{'=' * 40}")
@@ -158,7 +186,10 @@ def main() -> None:
             result = run_pipeline(pipeline, problem)
             pipeline_results[p["slug"]][pipeline.name] = result
             if i < len(problems) - 1:
-                time.sleep(5)
+                time.sleep(8)
+
+        if pi < len(pipelines) - 1:
+            time.sleep(15)
 
     # Assemble results in the original format
     results = []
