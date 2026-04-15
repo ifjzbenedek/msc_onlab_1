@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=16G
-#SBATCH --time=06:00:00
+#SBATCH --time=12:00:00
 #SBATCH --output=results/slurm_compare_%j.out
 
 # ── Configuration (override via environment when submitting) ──
