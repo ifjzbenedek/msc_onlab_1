@@ -2,7 +2,7 @@
 #SBATCH --job-name=llm-explore
 #SBATCH --partition=gpu
 #SBATCH --qos=hallgato_qos
-#SBATCH --gres=gpu:rtx3090:1
+#SBATCH --gres=gpu:rtx3090:2
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=16G
