@@ -25,6 +25,19 @@ source .venv/bin/activate
 export OLLAMA_HOST="http://localhost:11434"
 mkdir -p results
 
+# ── Start Ollama inside the job so SLURM can reclaim its GPU on exit ──
+echo "Starting Ollama server..."
+ollama serve > /tmp/ollama_${SLURM_JOB_ID}.log 2>&1 &
+OLLAMA_PID=$!
+trap "kill $OLLAMA_PID 2>/dev/null" EXIT
+for i in $(seq 1 30); do
+    if curl -s http://localhost:11434/api/tags > /dev/null; then
+        echo "Ollama ready (pid=$OLLAMA_PID)"
+        break
+    fi
+    sleep 1
+done
+
 echo "Job $SLURM_JOB_ID started at $(date)"
 echo "Node: $HOSTNAME"
 echo "Max combos: $MAX_COMBOS | Max size: ${MAX_SIZE_GB}GB"
