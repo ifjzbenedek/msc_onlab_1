@@ -14,9 +14,9 @@ import config
 from src.clients import OllamaClient, LeetCodeClient, LeetCodeSubmitter
 from src.agents import (
     AgentPipeline, Baseline, BaselineFix, Reviewer, ReviewerFix,
-    MajorityVoting, SelfReflection, PeerReview, HierarchicalReview,
+    BestOfN, SelfReflection, PeerReview, HierarchicalReview,
     Debate, CoopetitionMerge, PlannerCoder, Orchestrator,
-    LLMRouter, RuleRouter,
+    LLMRouter, RuleRouter, WeightedMajority,
 )
 from src.utils import ReportGenerator
 from src.models.config import SolveConfig
@@ -86,7 +86,15 @@ def main() -> None:
     parser.add_argument("--judge-model", default=None,
                         help="Model for debate judge / merge (defaults to reviewer)")
     parser.add_argument("--voting-runs", type=int, default=0,
-                        help="If >0, add MajorityVoting wrapper for each pipeline with N runs")
+                        help="If >0, add BestOfN wrapper for each pipeline with N runs")
+    parser.add_argument("--only-pipelines", default=None,
+                        help="Comma-separated pipeline names to run (default: all). "
+                             "Does not affect the WeightedMajority pool — WM always uses all 12.")
+    parser.add_argument("--weighted-majority-beta", type=float, default=None,
+                        help="If set, add a WeightedMajority ensemble with this beta.")
+    parser.add_argument("--weighted-majority-pool", default=None,
+                        help="Comma-separated pipeline names for WM pool (default: all 12). "
+                             "Independent from --only-pipelines.")
     args = parser.parse_args()
 
     writer_model = args.writer_model
@@ -154,10 +162,39 @@ def main() -> None:
         Orchestrator(orchestrator_inner, RuleRouter({"Easy": "baseline", "Medium": "baseline+fix", "Hard": "reviewer+fix"}), name="orchestrator-rule"),
     ]
 
-    pipelines: list[AgentPipeline] = list(base_pipelines)
+    if args.only_pipelines:
+        wanted = {n.strip() for n in args.only_pipelines.split(",") if n.strip()}
+        known = {p.name for p in base_pipelines}
+        unknown = wanted - known
+        if unknown:
+            print(f"Unknown pipeline names in --only-pipelines: {sorted(unknown)}")
+            print(f"Known: {sorted(known)}")
+            sys.exit(1)
+        pipelines: list[AgentPipeline] = [p for p in base_pipelines if p.name in wanted]
+    else:
+        pipelines = list(base_pipelines)
+
+    if args.weighted_majority_beta is not None:
+        if args.weighted_majority_pool:
+            wm_wanted = {n.strip() for n in args.weighted_majority_pool.split(",") if n.strip()}
+            known = {p.name for p in base_pipelines}
+            unknown = wm_wanted - known
+            if unknown:
+                print(f"Unknown pipeline names in --weighted-majority-pool: {sorted(unknown)}")
+                print(f"Known: {sorted(known)}")
+                sys.exit(1)
+            wm_pool = [p for p in base_pipelines if p.name in wm_wanted]
+        else:
+            wm_pool = list(base_pipelines)
+        pipelines.append(WeightedMajority(
+            pipelines=wm_pool,
+            beta=args.weighted_majority_beta,
+            seed=args.seed,
+        ))
+
     if args.voting_runs > 0:
-        for p in base_pipelines:
-            pipelines.append(MajorityVoting(p, runs=args.voting_runs))
+        for p in list(pipelines):
+            pipelines.append(BestOfN(p, runs=args.voting_runs))
 
     pipeline_names = [p.name for p in pipelines]
     t0 = time.time()

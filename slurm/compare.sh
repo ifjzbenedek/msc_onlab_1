@@ -19,6 +19,9 @@ HARD="${HARD:-10}"
 SEED="${SEED:-42}"
 MAX_ITER="${MAX_ITER:-3}"
 LANG="${LANG:-python3}"
+ONLY_PIPELINES="${ONLY_PIPELINES:-}"
+WM_BETA="${WM_BETA:-}"
+WM_POOL="${WM_POOL:-}"
 
 # ── Setup ──
 cd "$HOME/msc_onlab_1" || exit 1
@@ -45,6 +48,17 @@ echo "Writer: $WRITER_MODEL | Reviewer: $REVIEWER_MODEL"
 echo "Problems: Easy=$EASY Medium=$MEDIUM Hard=$HARD"
 echo "=========================================="
 
+EXTRA_ARGS=()
+if [ -n "$ONLY_PIPELINES" ]; then
+    EXTRA_ARGS+=(--only-pipelines "$ONLY_PIPELINES")
+fi
+if [ -n "$WM_BETA" ]; then
+    EXTRA_ARGS+=(--weighted-majority-beta "$WM_BETA")
+fi
+if [ -n "$WM_POOL" ]; then
+    EXTRA_ARGS+=(--weighted-majority-pool "$WM_POOL")
+fi
+
 python3 scripts/compare_methods.py \
     --writer-model "$WRITER_MODEL" \
     --reviewer-model "$REVIEWER_MODEL" \
@@ -53,7 +67,8 @@ python3 scripts/compare_methods.py \
     --hard "$HARD" \
     --seed "$SEED" \
     --max-iterations "$MAX_ITER" \
-    --lang "$LANG"
+    --lang "$LANG" \
+    "${EXTRA_ARGS[@]}"
 
 echo "=========================================="
 echo "Job finished at $(date)"

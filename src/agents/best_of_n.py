@@ -4,12 +4,12 @@ from src.agents.pipeline import AgentPipeline, PipelineResult
 from src.models.problem import Problem
 
 
-class MajorityVoting:
+class BestOfN:
 
     def __init__(self, inner: AgentPipeline, runs: int = 3) -> None:
         self.inner = inner
         self.runs = runs
-        self.name = f"voting({inner.name}, n={runs})"
+        self.name = f"best_of_n({inner.name}, n={runs})"
 
     def run(self, problem: Problem) -> PipelineResult:
         results: list[PipelineResult] = []
