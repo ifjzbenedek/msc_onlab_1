@@ -52,13 +52,18 @@ def run_pipeline(pipeline: AgentPipeline, problem) -> PipelineRunResult:
     reviews = len(result.reviews)
     review_info = f", {reviews} reviews" if reviews else ""
 
+    voting_stats = result.voting_stats
+
     if not result.code:
         print(f"  [{pipeline.name}] no code ({elapsed:.0f}s)")
-        return PipelineRunResult(time=elapsed, status="no code")
+        return PipelineRunResult(time=elapsed, status="no code", voting_stats=voting_stats)
 
     if not result.submission:
         print(f"  [{pipeline.name}] generated ({elapsed:.0f}s{review_info})")
-        return PipelineRunResult(time=elapsed, status="not submitted", num_reviews=reviews)
+        return PipelineRunResult(
+            time=elapsed, status="not submitted", num_reviews=reviews,
+            voting_stats=voting_stats,
+        )
 
     icon = "+" if result.submission.accepted else "x"
     print(f"  [{pipeline.name}] [{icon}] {result.submission.status} ({elapsed:.0f}s{review_info})")
@@ -67,6 +72,7 @@ def run_pipeline(pipeline: AgentPipeline, problem) -> PipelineRunResult:
         accepted=result.submission.accepted,
         status=result.submission.status,
         num_reviews=reviews,
+        voting_stats=voting_stats,
     )
 
 

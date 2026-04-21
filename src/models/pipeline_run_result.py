@@ -7,3 +7,4 @@ class PipelineRunResult(BaseModel):
     accepted: Optional[bool] = None
     status: str
     num_reviews: int = 0
+    voting_stats: Optional[dict] = None
