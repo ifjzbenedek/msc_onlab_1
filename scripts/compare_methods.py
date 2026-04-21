@@ -169,14 +169,17 @@ def main() -> None:
     ]
 
     if args.only_pipelines:
-        wanted = {n.strip() for n in args.only_pipelines.split(",") if n.strip()}
-        known = {p.name for p in base_pipelines}
-        unknown = wanted - known
-        if unknown:
-            print(f"Unknown pipeline names in --only-pipelines: {sorted(unknown)}")
-            print(f"Known: {sorted(known)}")
-            sys.exit(1)
-        pipelines: list[AgentPipeline] = [p for p in base_pipelines if p.name in wanted]
+        if args.only_pipelines.strip().lower() == "none":
+            pipelines: list[AgentPipeline] = []
+        else:
+            wanted = {n.strip() for n in args.only_pipelines.split(",") if n.strip()}
+            known = {p.name for p in base_pipelines}
+            unknown = wanted - known
+            if unknown:
+                print(f"Unknown pipeline names in --only-pipelines: {sorted(unknown)}")
+                print(f"Known: {sorted(known)}")
+                sys.exit(1)
+            pipelines = [p for p in base_pipelines if p.name in wanted]
     else:
         pipelines = list(base_pipelines)
 
