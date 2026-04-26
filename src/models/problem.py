@@ -1,6 +1,6 @@
 """Data model for a LeetCode problem."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Problem(BaseModel):
@@ -11,3 +11,4 @@ class Problem(BaseModel):
     description: str
     code_stub: str
     lang: str = "python3"
+    tags: list[str] = Field(default_factory=list)

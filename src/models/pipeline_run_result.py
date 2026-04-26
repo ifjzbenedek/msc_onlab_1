@@ -8,3 +8,4 @@ class PipelineRunResult(BaseModel):
     status: str
     num_reviews: int = 0
     voting_stats: Optional[dict] = None
+    vram_peak_mb: Optional[float] = None

@@ -15,6 +15,7 @@ query getQuestionDetail($titleSlug: String!) {
         difficulty
         content
         codeSnippets { langSlug code }
+        topicTags { slug }
     }
 }
 """
@@ -56,6 +57,8 @@ class LeetCodeClient:
                 code_stub = snippet["code"]
                 break
 
+        tags = [t["slug"] for t in raw.get("topicTags") or []]
+
         problem = Problem(
             id=raw["questionId"],
             title=raw["title"],
@@ -64,6 +67,7 @@ class LeetCodeClient:
             description=raw["content"],
             code_stub=code_stub,
             lang=lang,
+            tags=tags,
         )
         log.info("Fetched problem #%s: %s (%s)", problem.id, problem.title, problem.difficulty)
         return problem

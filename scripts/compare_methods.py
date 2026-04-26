@@ -16,7 +16,9 @@ from src.agents import (
     AgentPipeline, Baseline, BaselineFix, Reviewer, ReviewerFix,
     BestOfN, SelfReflection, PeerReview, HierarchicalReview,
     Debate, CoopetitionMerge, PlannerCoder, Orchestrator,
-    LLMRouter, RuleRouter, WeightedMajority,
+    LLMRouter, RuleRouter,
+    WeightedMajority, RandomizedWeightedMajority,
+    RandomizedWeightedMajorityWithRetry, Exp3,
 )
 from src.utils import ReportGenerator
 from src.models.config import SolveConfig
@@ -33,6 +35,23 @@ DEFAULT_REVIEWER_MODEL = "gemma2:9b"
 def pick_problems(all_problems: list[dict], difficulty: str, n: int) -> list[dict]:
     pool = [p for p in all_problems if p["difficulty"] == difficulty and not p["paid_only"]]
     return random.sample(pool, min(n, len(pool)))
+
+
+def resolve_pool(
+    pool_arg: "str | None",
+    base_pipelines: list[AgentPipeline],
+    flag_name: str,
+) -> list[AgentPipeline]:
+    if not pool_arg:
+        return list(base_pipelines)
+    wanted = {n.strip() for n in pool_arg.split(",") if n.strip()}
+    known = {p.name for p in base_pipelines}
+    unknown = wanted - known
+    if unknown:
+        print(f"Unknown pipeline names in {flag_name}: {sorted(unknown)}")
+        print(f"Known: {sorted(known)}")
+        sys.exit(1)
+    return [p for p in base_pipelines if p.name in wanted]
 
 
 def run_pipeline(pipeline: AgentPipeline, problem) -> PipelineRunResult:
@@ -101,6 +120,15 @@ def main() -> None:
     parser.add_argument("--weighted-majority-pool", default=None,
                         help="Comma-separated pipeline names for WM pool (default: all 12). "
                              "Independent from --only-pipelines.")
+    parser.add_argument("--ensemble-pool", default=None,
+                        help="Shared inner pool for WMR / WMR-retry / EXP3 ensembles. "
+                             "Defaults to all 12 base pipelines.")
+    parser.add_argument("--wmr-beta", type=float, default=None,
+                        help="If set, add a RandomizedWeightedMajority (LW94 §4) ensemble.")
+    parser.add_argument("--wmr-retry-beta", type=float, default=None,
+                        help="If set, add a WMR-with-rejection-retry ensemble.")
+    parser.add_argument("--exp3-gamma", type=float, default=None,
+                        help="If set, add an EXP3 adversarial bandit (Auer 2002) with this gamma.")
     args = parser.parse_args()
 
     writer_model = args.writer_model
@@ -184,20 +212,38 @@ def main() -> None:
         pipelines = list(base_pipelines)
 
     if args.weighted_majority_beta is not None:
-        if args.weighted_majority_pool:
-            wm_wanted = {n.strip() for n in args.weighted_majority_pool.split(",") if n.strip()}
-            known = {p.name for p in base_pipelines}
-            unknown = wm_wanted - known
-            if unknown:
-                print(f"Unknown pipeline names in --weighted-majority-pool: {sorted(unknown)}")
-                print(f"Known: {sorted(known)}")
-                sys.exit(1)
-            wm_pool = [p for p in base_pipelines if p.name in wm_wanted]
-        else:
-            wm_pool = list(base_pipelines)
+        wm_pool = resolve_pool(
+            args.weighted_majority_pool or args.ensemble_pool,
+            base_pipelines,
+            "--weighted-majority-pool",
+        )
         pipelines.append(WeightedMajority(
             pipelines=wm_pool,
             beta=args.weighted_majority_beta,
+            seed=args.seed,
+        ))
+
+    if args.wmr_beta is not None:
+        pool = resolve_pool(args.ensemble_pool, base_pipelines, "--ensemble-pool")
+        pipelines.append(RandomizedWeightedMajority(
+            pipelines=pool,
+            beta=args.wmr_beta,
+            seed=args.seed,
+        ))
+
+    if args.wmr_retry_beta is not None:
+        pool = resolve_pool(args.ensemble_pool, base_pipelines, "--ensemble-pool")
+        pipelines.append(RandomizedWeightedMajorityWithRetry(
+            pipelines=pool,
+            beta=args.wmr_retry_beta,
+            seed=args.seed,
+        ))
+
+    if args.exp3_gamma is not None:
+        pool = resolve_pool(args.ensemble_pool, base_pipelines, "--ensemble-pool")
+        pipelines.append(Exp3(
+            pipelines=pool,
+            gamma=args.exp3_gamma,
             seed=args.seed,
         ))
 
@@ -239,8 +285,13 @@ def main() -> None:
 
     # Assemble results in the original format
     results = []
-    for p, _ in problems:
-        entry = {"slug": p["slug"], "title": p["title"], "difficulty": p["difficulty"]}
+    for p, problem in problems:
+        entry = {
+            "slug": p["slug"],
+            "title": p["title"],
+            "difficulty": p["difficulty"],
+            "tags": problem.tags,
+        }
         for name in pipeline_names:
             if name in pipeline_results[p["slug"]]:
                 entry[name] = pipeline_results[p["slug"]][name].model_dump()

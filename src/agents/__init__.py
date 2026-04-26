@@ -12,7 +12,12 @@ from src.agents.coopetition_merge import CoopetitionMerge
 from src.agents.planner_coder import PlannerCoder
 from src.agents.orchestrator import Orchestrator
 from src.agents.routers import Router, LLMRouter, RuleRouter
-from src.agents.weighted_voting import WeightedMajority
+from src.agents.weighted_voting import (
+    WeightedMajority,
+    RandomizedWeightedMajority,
+    RandomizedWeightedMajorityWithRetry,
+    Exp3,
+)
 
 __all__ = [
     "AgentPipeline", "PipelineResult",
@@ -33,4 +38,7 @@ __all__ = [
     "Router", "LLMRouter", "RuleRouter",
     # Weighted voting ensembles
     "WeightedMajority",
+    "RandomizedWeightedMajority",
+    "RandomizedWeightedMajorityWithRetry",
+    "Exp3",
 ]
