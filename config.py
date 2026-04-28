@@ -17,3 +17,6 @@ SSH_TUNNEL_REMOTE_PORT = int(os.getenv("SSH_TUNNEL_REMOTE_PORT", "11434"))
 # LeetCode
 LEETCODE_GRAPHQL_URL = os.getenv("LEETCODE_GRAPHQL_URL", "https://leetcode.com/graphql")
 LEETCODE_SESSION = os.getenv("LEETCODE_SESSION", "")
+
+LEETCODE_STATE_DB = os.getenv("LEETCODE_STATE_DB", ".cache/leetcode/state.db")
+LEETCODE_RATE_INTERVAL_SECONDS = float(os.getenv("LEETCODE_RATE_INTERVAL_SECONDS", "10"))

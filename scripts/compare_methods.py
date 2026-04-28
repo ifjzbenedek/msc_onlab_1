@@ -11,7 +11,10 @@ import logging
 
 import httpx
 import config
-from src.clients import OllamaClient, LeetCodeClient, LeetCodeSubmitter
+from src.clients import (
+    OllamaClient, LeetCodeClient, LeetCodeSubmitter,
+    SubmissionCache, RateLimiter,
+)
 from src.agents import (
     AgentPipeline, Baseline, BaselineFix, Reviewer, ReviewerFix,
     BestOfN, SelfReflection, PeerReview, HierarchicalReview,
@@ -163,9 +166,15 @@ def main() -> None:
 
     leetcode = LeetCodeClient(graphql_url=config.LEETCODE_GRAPHQL_URL)
     ollama = OllamaClient(host=config.OLLAMA_HOST)
+
+    cache = SubmissionCache(config.LEETCODE_STATE_DB)
+    rate_limiter = RateLimiter(config.LEETCODE_STATE_DB, config.LEETCODE_RATE_INTERVAL_SECONDS)
+
     submitter = LeetCodeSubmitter(
         session_cookie=config.LEETCODE_SESSION,
         graphql_url=config.LEETCODE_GRAPHQL_URL,
+        cache=cache,
+        rate_limiter=rate_limiter,
     )
 
     cfg = SolveConfig(
