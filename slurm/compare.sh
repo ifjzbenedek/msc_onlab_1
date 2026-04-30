@@ -18,7 +18,7 @@ MEDIUM="${MEDIUM:-10}"
 HARD="${HARD:-10}"
 SEED="${SEED:-42}"
 MAX_ITER="${MAX_ITER:-3}"
-LANG="${LANG:-python3}"
+PROG_LANG="${PROG_LANG:-python3}"
 ONLY_PIPELINES="${ONLY_PIPELINES:-}"
 WM_BETA="${WM_BETA:-}"
 WM_POOL="${WM_POOL:-}"
@@ -88,7 +88,7 @@ python3 scripts/compare_methods.py \
     --hard "$HARD" \
     --seed "$SEED" \
     --max-iterations "$MAX_ITER" \
-    --lang "$LANG" \
+    --lang "$PROG_LANG" \
     "${EXTRA_ARGS[@]}"
 
 echo "=========================================="
