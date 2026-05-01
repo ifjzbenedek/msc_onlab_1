@@ -21,7 +21,7 @@ from src.agents import (
     Debate, CoopetitionMerge, PlannerCoder, Orchestrator,
     LLMRouter, RuleRouter,
     WeightedMajority, RandomizedWeightedMajority,
-    RandomizedWeightedMajorityWithRetry, Exp3,
+    RandomizedWeightedMajorityWithRetry, RandomizedWeightedMajorityPromote, Exp3,
 )
 from src.utils import ReportGenerator
 from src.models.config import SolveConfig
@@ -132,6 +132,11 @@ def main() -> None:
                         help="If set, add a WMR-with-rejection-retry ensemble.")
     parser.add_argument("--exp3-gamma", type=float, default=None,
                         help="If set, add an EXP3 adversarial bandit (Auer 2002) with this gamma.")
+    parser.add_argument("--wmr-promote-alpha", type=float, default=None,
+                        help="If set together with --wmr-promote-beta, add a WMR-promote ensemble "
+                             "where weights are multiplied by (1+alpha) on success and by beta on failure.")
+    parser.add_argument("--wmr-promote-beta", type=float, default=None,
+                        help="See --wmr-promote-alpha.")
     args = parser.parse_args()
 
     writer_model = args.writer_model
@@ -253,6 +258,15 @@ def main() -> None:
         pipelines.append(Exp3(
             pipelines=pool,
             gamma=args.exp3_gamma,
+            seed=args.seed,
+        ))
+
+    if args.wmr_promote_alpha is not None and args.wmr_promote_beta is not None:
+        pool = resolve_pool(args.ensemble_pool, base_pipelines, "--ensemble-pool")
+        pipelines.append(RandomizedWeightedMajorityPromote(
+            pipelines=pool,
+            alpha=args.wmr_promote_alpha,
+            beta=args.wmr_promote_beta,
             seed=args.seed,
         ))
 

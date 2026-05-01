@@ -9,6 +9,7 @@ from src.agents.weighted_voting.base import WeightedVotingBase
 from src.agents.weighted_voting.wm import WeightedMajority
 from src.agents.weighted_voting.wmr import RandomizedWeightedMajority
 from src.agents.weighted_voting.wmr_retry import RandomizedWeightedMajorityWithRetry
+from src.agents.weighted_voting.wmr_promote import RandomizedWeightedMajorityPromote
 from src.agents.weighted_voting.exp3 import Exp3
 
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     "WeightedMajority",
     "RandomizedWeightedMajority",
     "RandomizedWeightedMajorityWithRetry",
+    "RandomizedWeightedMajorityPromote",
     "Exp3",
 ]

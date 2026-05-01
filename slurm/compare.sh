@@ -26,6 +26,8 @@ ENSEMBLE_POOL="${ENSEMBLE_POOL:-}"
 WMR_BETA="${WMR_BETA:-}"
 WMR_RETRY_BETA="${WMR_RETRY_BETA:-}"
 EXP3_GAMMA="${EXP3_GAMMA:-}"
+WMR_PROMOTE_ALPHA="${WMR_PROMOTE_ALPHA:-}"
+WMR_PROMOTE_BETA="${WMR_PROMOTE_BETA:-}"
 
 # ── Setup ──
 cd "$HOME/msc_onlab_1" || exit 1
@@ -78,6 +80,9 @@ if [ -n "$WMR_RETRY_BETA" ]; then
 fi
 if [ -n "$EXP3_GAMMA" ]; then
     EXTRA_ARGS+=(--exp3-gamma "$EXP3_GAMMA")
+fi
+if [ -n "$WMR_PROMOTE_ALPHA" ] && [ -n "$WMR_PROMOTE_BETA" ]; then
+    EXTRA_ARGS+=(--wmr-promote-alpha "$WMR_PROMOTE_ALPHA" --wmr-promote-beta "$WMR_PROMOTE_BETA")
 fi
 
 python3 scripts/compare_methods.py \

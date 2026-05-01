@@ -16,6 +16,7 @@ from src.agents.weighted_voting import (
     WeightedMajority,
     RandomizedWeightedMajority,
     RandomizedWeightedMajorityWithRetry,
+    RandomizedWeightedMajorityPromote,
     Exp3,
 )
 
@@ -40,5 +41,6 @@ __all__ = [
     "WeightedMajority",
     "RandomizedWeightedMajority",
     "RandomizedWeightedMajorityWithRetry",
+    "RandomizedWeightedMajorityPromote",
     "Exp3",
 ]
