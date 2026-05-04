@@ -94,7 +94,7 @@ class LeetCodeSubmitter:
         self._http.headers["x-csrftoken"] = self._http.cookies["csrftoken"]
 
     def submit(self, slug: str, question_id: str, code: str, lang: str = "python3",
-               max_retries: int = 4) -> SubmissionResult:
+               max_retries: int = 3) -> SubmissionResult:
 
         if self.cache is not None:
             cached = self.cache.get(slug, lang, code)
@@ -127,7 +127,7 @@ class LeetCodeSubmitter:
                     raise RateLimitedError(
                         f"got HTTP {resp.status_code} for {slug} after {max_retries} tries"
                     )
-                wait = 60 * (2 ** attempt)
+                wait = 30 * (2 ** attempt)
                 log.warning("got HTTP %d, waiting %ds (attempt %d/%d)",
                             resp.status_code, wait, attempt + 1, max_retries)
                 if resp.status_code == 403:
