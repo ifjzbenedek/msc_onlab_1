@@ -147,7 +147,7 @@ class LeetCodeSubmitter:
 
         return result
 
-    def _poll_result(self, slug: str, submission_id: int, max_wait: int = 60) -> SubmissionResult:
+    def _poll_result(self, slug: str, submission_id: int, max_wait: int = 180) -> SubmissionResult:
         deadline = time.time() + max_wait
         time.sleep(10)
 
