@@ -137,6 +137,8 @@ def main() -> None:
                              "where weights are multiplied by (1+alpha) on success and by beta on failure.")
     parser.add_argument("--wmr-promote-beta", type=float, default=None,
                         help="See --wmr-promote-alpha.")
+    parser.add_argument("--shuffle-problems", action="store_true",
+                        help="Shuffle the selected problems before running (mixes Easy/Medium/Hard order). Uses --seed for reproducibility.")
     args = parser.parse_args()
 
     writer_model = args.writer_model
@@ -160,6 +162,11 @@ def main() -> None:
         picked = pick_problems(all_problems, diff, n)
         print(f"{diff}: {len(picked)} problems")
         selected.extend(picked)
+
+    if args.shuffle_problems:
+        shuffle_rng = random.Random(args.seed)
+        shuffle_rng.shuffle(selected)
+        print(f"(shuffled, seed={args.seed})")
 
     print(f"\nTotal: {len(selected)} problems")
     print(f"Writer:          {writer_model}")
