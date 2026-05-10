@@ -139,6 +139,14 @@ def main() -> None:
                         help="See --wmr-promote-alpha.")
     parser.add_argument("--shuffle-problems", action="store_true",
                         help="Shuffle the selected problems before running (mixes Easy/Medium/Hard order). Uses --seed for reproducibility.")
+    parser.add_argument("--temperature", type=float, default=0.2,
+                        help="Default sampling temperature for Ollama calls (default: 0.2).")
+    parser.add_argument("--top-p", type=float, default=None,
+                        help="Nucleus sampling: keep tokens whose cumulative prob <= top_p. None = Ollama default.")
+    parser.add_argument("--top-k", type=int, default=None,
+                        help="Top-k sampling: keep only the K most likely tokens. None = Ollama default.")
+    parser.add_argument("--repeat-penalty", type=float, default=None,
+                        help="Penalty for repeating tokens (default 1.1 in Ollama). 1.0 = no penalty.")
     args = parser.parse_args()
 
     writer_model = args.writer_model
@@ -177,7 +185,13 @@ def main() -> None:
     print("=" * 60)
 
     leetcode = LeetCodeClient(graphql_url=config.LEETCODE_GRAPHQL_URL)
-    ollama = OllamaClient(host=config.OLLAMA_HOST)
+    ollama = OllamaClient(
+        host=config.OLLAMA_HOST,
+        default_temperature=args.temperature,
+        default_top_p=args.top_p,
+        default_top_k=args.top_k,
+        default_repeat_penalty=args.repeat_penalty,
+    )
 
     cache = SubmissionCache(config.LEETCODE_STATE_DB)
     rate_limiter = RateLimiter(config.LEETCODE_STATE_DB, config.LEETCODE_RATE_INTERVAL_SECONDS)

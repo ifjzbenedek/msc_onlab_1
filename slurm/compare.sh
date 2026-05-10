@@ -29,6 +29,10 @@ EXP3_GAMMA="${EXP3_GAMMA:-}"
 WMR_PROMOTE_ALPHA="${WMR_PROMOTE_ALPHA:-}"
 WMR_PROMOTE_BETA="${WMR_PROMOTE_BETA:-}"
 SHUFFLE_PROBLEMS="${SHUFFLE_PROBLEMS:-}"
+TEMPERATURE="${TEMPERATURE:-}"
+TOP_P="${TOP_P:-}"
+TOP_K="${TOP_K:-}"
+REPEAT_PENALTY="${REPEAT_PENALTY:-}"
 
 # ── Setup ──
 cd "$HOME/msc_onlab_1" || exit 1
@@ -87,6 +91,18 @@ if [ -n "$WMR_PROMOTE_ALPHA" ] && [ -n "$WMR_PROMOTE_BETA" ]; then
 fi
 if [ -n "$SHUFFLE_PROBLEMS" ]; then
     EXTRA_ARGS+=(--shuffle-problems)
+fi
+if [ -n "$TEMPERATURE" ]; then
+    EXTRA_ARGS+=(--temperature "$TEMPERATURE")
+fi
+if [ -n "$TOP_P" ]; then
+    EXTRA_ARGS+=(--top-p "$TOP_P")
+fi
+if [ -n "$TOP_K" ]; then
+    EXTRA_ARGS+=(--top-k "$TOP_K")
+fi
+if [ -n "$REPEAT_PENALTY" ]; then
+    EXTRA_ARGS+=(--repeat-penalty "$REPEAT_PENALTY")
 fi
 
 python3 scripts/compare_methods.py \
